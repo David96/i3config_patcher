@@ -3,12 +3,19 @@ import sys
 
 from matcher import Matcher
 
+def add_variables_for_pattern(config, variables, used_variables, pattern):
+    # Find all variables used in pattern
+    var = [variable for variable,var_pattern in used_variables.items() if var_pattern == pattern]
+    # Add them to our config
+    config.extend([variables[variable] for variable in var])
+
 def mergeI3(oldconfig, newconfig):
     matcher = Matcher(["^font\s", "^client\.\w+", "^new_window\s", "^new_float\s", "^hide_edge_borders\s"], ["bar"])
     patched_config = []
 
     replacements = {}
     variables = {}
+    used_variables = {}
     with open(newconfig) as f:
         for line in f:
             match, pattern = matcher.matches(line)
@@ -16,6 +23,10 @@ def mergeI3(oldconfig, newconfig):
             if match == Matcher.MATCH_VARIABLE:
                 variables[pattern] = line
             if match > Matcher.MATCH_NONE:
+                for variable in variables:
+                    if "$%s" % variable in line and variable not in used_variables:
+                        print("Added variable %s for pattern %s" % (variable, pattern))
+                        used_variables[variable] =  pattern
                 try:
                     replacements[pattern].append(line)
                 except:
@@ -25,22 +36,17 @@ def mergeI3(oldconfig, newconfig):
         for i,line in enumerate(f):
             match, pattern = matcher.matches(line)
             # don't override existing variables, later the user should be asked here
-            if match == Matcher.MATCH_VARIABLE and pattern in variables:
-                print("%s already set, not overriding" % pattern)
-                variables.pop(pattern)
+            if match == Matcher.MATCH_VARIABLE and pattern in used_variables:
+                override = input("%s already set, override? [y/n] " % pattern)
+                if override.lower() == "y":
+                    continue
+                else:
+                    used_variables.pop(pattern)
             # Look for a replacement of the found match
             if match > Matcher.MATCH_NONE and pattern in replacements:
                 replacement = replacements[pattern]
                 if replacement != None:
-                    # Look for actual usage of the variables extracted from the new config
-                    # Append them right before the actual usage
-                    # Might want to find a more pythonic way to do this
-                    for line in replacement:
-                        for name, var_line in variables.copy().items():
-                            if "$%s" % name in line:
-                                print("Found usage of %s after line %d" % (name, i))
-                                patched_config.append(var_line)
-                                variables.pop(name)
+                    add_variables_for_pattern(patched_config, variables, used_variables, pattern)
                     print("Replacing %s, line %d, with:\n%s" % (line.strip(), i, ''.join(replacement)))
                     patched_config.extend(replacement)
                     replacements[pattern] = None
@@ -51,6 +57,7 @@ def mergeI3(oldconfig, newconfig):
     # Add missing parts that we didn't find a place to inline-replace for at the end of the file
     for pattern, replacement in replacements.items():
         if replacement != None:
+            add_variables_for_pattern(patched_config, variables, used_variables, pattern)
             patched_config.extend(replacement)
 
     # Write our new shiny config
