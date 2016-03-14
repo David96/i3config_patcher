@@ -19,7 +19,7 @@ Existing variables or variables not used in the newly added parts aren't replace
 
 
 ### Usage:
-./i3config \<path/to/old/config\> \<path/to/old/config\>
+./i3config \<path/to/old/config\> \<path/to/new/config\>
 
 # Important note!!!!
 This script does **NO BACKUP** of your current config yet, moreover it **OVERRIDES** it with the new, merged one.
