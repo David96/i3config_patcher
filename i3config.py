@@ -23,10 +23,27 @@ def mergeI3(oldconfig, newconfig):
             if match == Matcher.MATCH_VARIABLE:
                 variables[pattern] = line
             if match > Matcher.MATCH_NONE:
+                variable_matches = {}
                 for variable in variables:
-                    if "$%s" % variable in line and variable not in used_variables:
-                        print("Added variable %s for pattern %s" % (variable, pattern))
-                        used_variables[variable] =  pattern
+                    # There might be variables including other variables (like $light and $lighter, $dark and $darker etc.)
+                    # i3 allows usage of variables in strings like $varblabla so we look for multiple variable occurences
+                    # at the same position and if in doubt take the longer variable.
+                    # See https://github.com/David96/i3config_patcher/issues/6
+                    try:
+                        position = line.index(variable)
+                        if position in variable_matches:
+                            print("Found conflicting variable usage of %s with %s at %d in %s" %
+                                    (variable, variable_matches[position], position, pattern))
+                            variable_matches[position] = variable \
+                                    if len(variable) > len(variable_matches[position]) else variable_matches[position]
+                            print("Using %s" % variable_matches[position])
+                        else:
+                            variable_matches[position] = variable
+                    except ValueError:
+                        pass
+                for var in variable_matches.values():
+                    if var not in used_variables:
+                        used_variables[var] = pattern
                 try:
                     replacements[pattern].append(line)
                 except:
