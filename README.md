@@ -8,14 +8,22 @@ The plan is to make it possible to browse the provided styles and merge them wit
 
 
 ## The current state:
-It currently supports the following i3 style attributes:
-```font, client.*, new_window, new_float, hide_edge_borders.```
-If any of those is found in the new config, all occurences of it in the old one are replaced by the ones in the new one.
+The script supports replacing occurrences of patterns in the old config with the ones in the new one
+based on which block they're in.
 
-Furthermore it supports replacing whole blocks, currently set to the "bar" block - supports replacing nested blocks like the "colors" block inside "bar", too.
+The patterns to be replaced are currently set as:
+```python
+"root" : ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s", "^\s*new_float\s", "^\s*hide_edge_borders\s"],
+"bar": ["^\s*strip_workspace_numbers\s", "^\s*font\s", "^\s*mode\s"],
+"colors": [".*"]
+```
+"root" representing every match without an associated block.
+
+It is planned to make those patterns configurable within a config file.
 
 The script looks for variables in the new config and adds them right before a usage of them in the merged config.
 Existing variables or variables not used in the newly added parts aren't replaced.
+If a variable used in the new config already exists in the old one the user is asked whether to override.
 
 
 ### Usage:
