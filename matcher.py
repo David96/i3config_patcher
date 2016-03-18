@@ -1,20 +1,22 @@
 import re
 
+MATCH_VARIABLE = -1
+MATCH_NONE = 0
+MATCH_LINE = 1
+MATCH_OPEN = 2
+MATCH_CLOSE = 3
+
 class Matcher:
     """
-        Provides basic matching functionality tailored for i3 config files.
+        Provides basic matching functionality tailored to i3 config files.
     """
-    MATCH_VARIABLE = -1
-    MATCH_NONE = 0
-    MATCH_LINE = 1
-    MATCH_BLOCK = 2
-
     match_level = 0
-    matching_block = 0
-    current_block = None
+    matching_blocks = [ "root" ]
 
-    def __init__(self, line_patterns, blocks):
-        self.line_patterns = line_patterns
+    pattern_open = "^\s*(\w+)\s*(\".*\")?\s*{"
+    pattern_close = "\s*}\s*"
+
+    def __init__(self, blocks):
         self.blocks = blocks
 
     def matches(self, line):
@@ -26,39 +28,37 @@ class Matcher:
                 the line you want to match
 
             Returns:
-                (MATCH_VARIABLE, name) in case there's a variable defined in that line
-                (MATCH_NONE, None) in case there's nothing matching the provided patterns and no variable defined
-                (MATCH_LINE, pattern) in case the line matches pattern
-                (MATCH_BLOCK, block) in case the line corresponds to block
+                MatchObj
 
         """
-        matchObj = re.match("^\s*(\w+)\s*(\".*\")?\s*{", line)
+        matchObj = re.match(self.pattern_open, line)
         if matchObj:
             self.match_level += 1
             block = matchObj.group(1)
-            if block in self.blocks:
-                self.current_block = block
-                self.matching_block = self.match_level
-                return (self.MATCH_BLOCK, block)
+            self.matching_blocks.append(block)
+            return MatchObj(MATCH_OPEN, self.pattern_open, block, matchObj.groups())
 
-        matchObj = re.match("\s*}\s*", line)
+        current_block = self.matching_blocks[self.match_level]
+        matchObj = re.match(self.pattern_close, line)
         if matchObj:
             self.match_level -= 1
-            if self.matching_block == self.match_level + 1:
-                self.matching_block = 0
-                return (self.MATCH_BLOCK, self.current_block)
-
-        if self.matching_block > 0 and self.matching_block <= self.match_level:
-            return (self.MATCH_BLOCK, self.current_block)
+            self.matching_blocks.pop()
+            return MatchObj(MATCH_CLOSE, self.pattern_close, current_block, matchObj.groups())
 
         matchObj = re.match("^set\s+\$(\w+)\s+(.+)", line)
         if matchObj:
-            return (self.MATCH_VARIABLE, matchObj.group(1))
+            return MatchObj(MATCH_VARIABLE, None, current_block, matchObj.groups())
 
-        for pattern in self.line_patterns:
-            matchObj = re.match(pattern, line)
-            if matchObj:
-                return (self.MATCH_LINE, pattern)
-        return (self.MATCH_NONE, None)
+        if current_block in self.blocks:
+            for pattern in self.blocks[current_block]:
+                matchObj = re.match(pattern, line)
+                if matchObj:
+                    return MatchObj(MATCH_LINE, pattern, current_block, matchObj.groups())
+        return MatchObj(MATCH_NONE, None, current_block, None)
 
-
+class MatchObj:
+    def __init__(self, match_type, pattern, current_block, groups):
+        self.match_type = match_type
+        self.pattern = pattern
+        self.current_block = current_block
+        self.groups = groups
