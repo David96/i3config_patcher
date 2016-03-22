@@ -1,12 +1,35 @@
 from matcher import *
+from xdg.BaseDirectory import xdg_config_home
+from os import path
+from merger import BaseMerger
 
-class I3Merger:
+import os
+
+class Merger(BaseMerger):
     """
         Provides merging functionality for two i3 config files.
         Merges only the style parts (identified by regex patterns) from the new file into the old one.
     """
+    def __init__(self):
+        self.files = {"config": [ "~/.i3/config", path.join(xdg_config_home, "i3/config") ] }
 
-    def get_used_variables(self, line, variables):
+    def merge(self, name, oldconfig, newconfig):
+        """
+            Merge the style of two i3 config files.
+            Overrides oldconfig.
+            Params:
+                name: name of the file in the theme
+                oldconfig: Path to old config
+                newconfig: Path to merge into old config
+        """
+        matcher = Matcher({"root" : ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s", "^\s*new_float\s", "^\s*hide_edge_borders\s"],
+                "bar": ["^\s*strip_workspace_numbers\s", "^\s*font\s", "^\s*mode\s"],
+                "colors": [".*"]})
+
+        (blocks, variables) = self.__parse_config(matcher, newconfig)
+        return self.__merge_config(matcher, blocks, variables, oldconfig)
+
+    def __get_used_variables(self, line, variables):
         """
             Returns variables used by a line.
             Sets "used" to "True" for each found variable!
@@ -34,38 +57,38 @@ class I3Merger:
             variables[var].used = True
         return used_variables
 
-    def append_variables(self, config, variables, used_variables):
+    def __append_variables(self, config, variables, used_variables):
         config.extend([variables.pop(v).line if v in variables else "" for v in used_variables])
 
-    def append_pattern(self, config, variables, matches, pattern):
-        self.append_variables_for_pattern(config, variables, matches, pattern)
-        self.append_matches_for_pattern(config, matches, pattern)
+    def __append_pattern(self, config, variables, matches, pattern):
+        self.__append_variables_for_pattern(config, variables, matches, pattern)
+        self.__append_matches_for_pattern(config, matches, pattern)
         matches[pattern] = None
 
-    def append_variables_for_pattern(self, config, variables, matches, pattern):
+    def __append_variables_for_pattern(self, config, variables, matches, pattern):
         if matches[pattern] != None:
             for match in matches[pattern]:
-                self.append_variables(config, variables, match.used_variables)
+                self.__append_variables(config, variables, match.used_variables)
 
-    def append_variables_for_block(self, config, variables, block):
-        self.append_variables(config, variables, block.used_variables)
+    def __append_variables_for_block(self, config, variables, block):
+        self.__append_variables(config, variables, block.used_variables)
         for b in block.blocks:
-            self.append_variables_for_block(config, variables, b)
+            self.__append_variables_for_block(config, variables, b)
 
-    def append_matches_for_pattern(self, config, matches, pattern):
+    def __append_matches_for_pattern(self, config, matches, pattern):
         if matches[pattern] != None:
             config.extend([m.line for m in matches[pattern]])
 
-    def append_block(self, config, block, variables):
+    def __append_block(self, config, block, variables):
         for pattern in block.matches:
-            self.append_pattern(config, variables, block.matches, pattern)
+            self.__append_pattern(config, variables, block.matches, pattern)
         for b in block.blocks:
             block_config = []
-            self.append_block(block_config, b, variables)
+            self.__append_block(block_config, b, variables)
             if len(block_config) > 0:
                 config.append("%s {\n%s\n}\n" % (b.name, "".join(block_config)))
 
-    def parse_config(self, matcher, path):
+    def __parse_config(self, matcher, path):
         blocks = { "root": Block("root", None) }
         current_block = blocks["root"]
         variables = {}
@@ -82,7 +105,7 @@ class I3Merger:
                 elif matchobj.match_type == MATCH_VARIABLE:
                     variables[matchobj.groups[0]] =  Variable(matchobj.groups[0], matchobj.groups[1], line)
                 elif matchobj.match_type == MATCH_LINE:
-                    used_variables = self.get_used_variables(line, variables)
+                    used_variables = self.__get_used_variables(line, variables)
                     current_block.used_variables |= used_variables
                     match = Match(matchobj.pattern, line, used_variables)
                     if matchobj.pattern in current_block.matches:
@@ -92,14 +115,14 @@ class I3Merger:
 
         return (blocks, variables)
 
-    def merge_config(self, matcher, blocks, variables, path):
+    def __merge_config(self, matcher, blocks, variables, path):
         patched_config = []
         with open(path) as f:
             for i, line in enumerate(f):
                 matchobj = matcher.matches(line)
                 current_block = blocks[matchobj.current_block] if matchobj.current_block in blocks else None
                 if current_block != None and matchobj.match_type == MATCH_OPEN:
-                    self.append_variables_for_block(patched_config, variables, current_block)
+                    self.__append_variables_for_block(patched_config, variables, current_block)
                 elif current_block != None and matchobj.match_type == MATCH_VARIABLE and matchobj.groups[0] in variables:
                     new_var = variables[matchobj.groups[0]]
                     if new_var.used:
@@ -111,39 +134,18 @@ class I3Merger:
 
                 if current_block != None and matchobj.match_type == MATCH_CLOSE:
                     # Append all matches that we didn't have a counterpart for in the old config
-                    self.append_block(patched_config, current_block, variables)
+                    self.__append_block(patched_config, current_block, variables)
                     blocks.pop(current_block.name)
 
                 if current_block != None and matchobj.match_type == MATCH_LINE and matchobj.pattern in current_block.matches:
-                    self.append_pattern(patched_config, variables, current_block.matches, matchobj.pattern)
+                    self.__append_pattern(patched_config, variables, current_block.matches, matchobj.pattern)
                 else:
                     patched_config.append(line)
 
         # Append matches that we couldn't inline-replace
-        self.append_block(patched_config, blocks["root"], variables)
+        self.__append_block(patched_config, blocks["root"], variables)
 
         return patched_config
-
-    def merge(self, oldconfig, newconfig):
-        """
-            Merge the style of two i3 config files.
-            Overrides oldconfig.
-            Params:
-                oldconfig: Path to old config
-                newconfig: Path to merge into old config
-        """
-        matcher = Matcher({"root" : ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s", "^\s*new_float\s", "^\s*hide_edge_borders\s"],
-                "bar": ["^\s*strip_workspace_numbers\s", "^\s*font\s", "^\s*mode\s"],
-                "colors": [".*"]})
-
-        (blocks, variables) = self.parse_config(matcher, newconfig)
-        patched_config = self.merge_config(matcher, blocks, variables, oldconfig)
-
-        # Write our new shiny config
-        with open(oldconfig, 'w') as f:
-            f.writelines(patched_config)
-
-
 
 """ Helper classes """
 

@@ -1,10 +1,18 @@
 #!/bin/env python
 import sys
 
-from i3merger import I3Merger
+from themes import Themes
+from config import Config
 
-if len(sys.argv) != 3:
-    print("Usage: %s <path/to/old/config> <path/to/new/config>")
+import os
+
+c = Config()
+
+if len(sys.argv) != 2:
+    print("Usage: %s theme-name")
+    print("The current theme is %s" % c.get("theme"))
     sys.exit(-1)
-merger = I3Merger()
-merger.merge(sys.argv[1], sys.argv[2])
+
+themes = Themes()
+t = themes.load_theme(sys.argv[1])
+t.apply()
