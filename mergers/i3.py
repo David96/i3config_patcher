@@ -17,10 +17,10 @@ class Merger(BaseMerger):
         """
             Merge the style of two i3 config files.
             Overrides oldconfig.
-            Params:
-                name: name of the file in the theme
-                oldconfig: Path to old config
-                newconfig: Path to merge into old config
+
+            :param name: name of the file in the theme
+            :param oldconfig: Path to old config
+            :param newconfig: Path to merge into old config
         """
         matcher = Matcher({"root" : ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s", "^\s*new_float\s", "^\s*hide_edge_borders\s"],
                 "bar": ["^\s*strip_workspace_numbers\s", "^\s*font\s", "^\s*mode\s"],

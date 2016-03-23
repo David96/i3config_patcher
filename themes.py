@@ -12,10 +12,13 @@ class Theme:
         The name of it is the name of its directory,
         which includes one directory for each software it supports
         containing the config files to use.
-        Example structure:
+
+        Example structure::
+
             blue/
             --->i3/
             ------->config
+
         This would create a theme »blue« including a config file for i3
     """
     def __init__(self, name, files, mergers, themes):

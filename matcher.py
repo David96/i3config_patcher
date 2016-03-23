@@ -10,13 +10,12 @@ class Matcher:
     """
         Provides basic matching functionality tailored to i3 config files.
     """
-    match_level = 0
-    matching_blocks = [ "root" ]
-
     pattern_open = "^\s*(\w+)\s*(\".*\")?\s*{"
     pattern_close = "\s*}\s*"
 
     def __init__(self, blocks):
+        self.match_level = 0
+        self.matching_blocks = [ "root" ]
         self.blocks = blocks
 
     def matches(self, line):
@@ -24,11 +23,9 @@ class Matcher:
             Match a line to the provided line and block patterns.
             Assumes that it is called line by line to make block matching work.
 
-            Args:
-                the line you want to match
+            :param line: the line you want to match
 
-            Returns:
-                MatchObj
+            :returns: :class:`.MatchObj`
 
         """
         matchObj = re.match(self.pattern_open, line)

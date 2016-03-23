@@ -5,27 +5,32 @@ class BaseMerger:
         All mergers have to extend this class.
 
         Things to declare:
-            self.files = { name : [path1, path2, ...], ... }: (declare in __init__)
+            .. function:: self.files = { name : [path1, path2, ...], ... }
+
                 path1, path2, ...:  possible places where the supported software may store the specific config file.
-                                    expanduser is called on them, so you can use paths like ~/.bla/blubb
+                expanduser is called on them, so you can use paths like ~/.bla/blubb
 
                 name: the name of the file in a theme.
 
-                Example: self.files = {"config": [ "~/.i3/config"), path.join(xdg_config_home, "i3/config") ] }
+                :example:
 
-            def merge(self, name, oldconfig, newconfig):
+                .. code-block:: python
+
+                    self.files = {"config": [ "~/.i3/config"),
+                                    path.join(xdg_config_home, "i3/config") ] }
+
+            .. function:: merge(self, name, oldconfig, newconfig)
+
                 When a theme is applied, this is called for each file we declared to support in self.files
                 and that is included in the theme
 
-                Params:
-                    name: the name of the file to merge in the theme
+                :param name: the name of the file to merge in the theme
+                :param oldconfig: the path to the original config
+                :param newconfig: the path to the config to merge
 
-                    oldconfig: the path to the original config
+                :returns: a list containing the patched config line by line
 
-                    newconfig: the path to the config to merge
-
-                returns:
-                    a list containing the patched config line by line
+        See :class:`mergers.i3.Merger` for an example implementation.
     """
 
     def apply(self, orig_files, new_files):
