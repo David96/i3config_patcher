@@ -10,7 +10,7 @@ class Matcher:
     """
         Provides basic matching functionality tailored to i3 config files.
     """
-    pattern_open = "^\s*(\w+)\s*(\".*\")?\s*{"
+    pattern_open = "^\s*(\w+)\s*(\"?.*\"?)?\s*{"
     pattern_close = "\s*}\s*"
 
     def __init__(self, blocks):

@@ -103,6 +103,6 @@ class Themes:
                     if issubclass(m, BaseMerger):
                         print("Found merger for %s" % name)
                         mergers[name] = m()
-                except:
-                    pass
+                except AttributeError:
+                    print("Merger %s found but doesn't implement a Merger class inheriting from BaseMerger" % name)
         return mergers
