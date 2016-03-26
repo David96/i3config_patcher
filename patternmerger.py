@@ -122,11 +122,14 @@ class PatternMerger(BaseMerger):
                 elif current_block != None and matchobj.match_type == MATCH_VARIABLE and matchobj.groups[0] in variables:
                     new_var = variables[matchobj.groups[0]]
                     if new_var.used:
-                        override = input("override %s=%s with %s=%s? [y/n] " % (matchobj.groups[0], matchobj.groups[1], new_var.name, new_var.value))
                         variables.pop(new_var.name)
-                        if override.lower() == "y":
-                            patched_config.append(new_var.line)
-                            continue
+                        # Only ask if they have different values
+                        if new_var.value != matchobj.groups[1]:
+                            override = input("override %s=%s with %s=%s? [y/n] " %
+                                    (matchobj.groups[0], matchobj.groups[1], new_var.name, new_var.value))
+                            if override.lower() == "y":
+                                patched_config.append(new_var.line)
+                                continue
 
                 if current_block != None and matchobj.match_type == MATCH_CLOSE:
                     # Append all matches that we didn't have a counterpart for in the old config
