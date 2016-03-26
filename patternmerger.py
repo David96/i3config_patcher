@@ -1,3 +1,5 @@
+import logging
+
 from matcher import *
 from merger import BaseMerger
 
@@ -37,11 +39,11 @@ class PatternMerger(BaseMerger):
             try:
                 position = line.index("$%s" % variable)
                 if position in variable_matches:
-                    print("Found conflicting variable usage of %s with %s at %d in %s" %
-                            (variable, variable_matches[position], position, line))
+                    logging.debug("Found conflicting variable usage of %s with %s at %d in %s",
+                            variable, variable_matches[position], position, line)
                     variable_matches[position] = variable \
                             if len(variable) > len(variable_matches[position]) else variable_matches[position]
-                    print("Using %s" % variable_matches[position])
+                    logging.debug("Using %s", variable_matches[position])
                 else:
                     variable_matches[position] = variable
             except ValueError:

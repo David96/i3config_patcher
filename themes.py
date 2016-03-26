@@ -1,6 +1,8 @@
 from xdg.BaseDirectory import xdg_config_home, xdg_data_home
 import shutil
 import os
+import logging
+
 from config import Config
 from merger import BaseMerger
 
@@ -30,7 +32,7 @@ class Theme:
     def apply(self):
         for name,files in self.files.items():
             if name in self.mergers:
-                print("Merging %s for %s" % (name, files))
+                logging.debug("Merging %s for %s", name, files)
                 self.mergers[name].apply(self.themes.original.files[name], files)
         Config().set("theme", self.name)
 
@@ -101,8 +103,8 @@ class Themes:
                 try:
                     m = getattr(mod, "Merger")
                     if issubclass(m, BaseMerger):
-                        print("Found merger for %s" % name)
+                        logging.debug("Found merger for %s", name)
                         mergers[name] = m()
                 except AttributeError:
-                    print("Merger %s found but doesn't implement a Merger class inheriting from BaseMerger" % name)
+                    logging.warning("Merger %s found but doesn't implement a Merger class inheriting from BaseMerger", name)
         return mergers
