@@ -14,13 +14,13 @@ The script looks for themes in XDG_DATA_HOME/config_patcher. For details about s
 Example themes can be found [here](https://github.com/David96/i3config_patcher/tree/master/examples). Copy them to XDG_DATA_HOME/config_patcher to test them.
 
 ### Backups:
-The script now creates an initial backup on its first run, but the method isn't exactly sophisticated, see https://david96.github.io/themes.html for details.
+The script backups files to the »originals« theme before patching them, see https://david96.github.io/themes.html for details.
 
 ### Usage:
 ./i3config \<theme-name\>
 
 ### Important note:
-After the first run, your original config files can be found at XDG_DATA_HOME/config_patcher/originals (usually ~/.local/share/config_patcher/originals). If a new theme is applied, those config files are used to patch against, so instead of editing the config files of the actual software (e.g ~/.config/i3/config) you should edit the files in the originals theme (e.g. ~/.local/share/config_patcher/originals/i3/config) as the actual config files will be overwritten.
+After being patched, your original config files can be found at XDG_DATA_HOME/config_patcher/originals (usually ~/.local/share/config_patcher/originals). If a new theme is applied, those config files are used to patch against, so instead of editing the config files of the actual software (e.g ~/.config/i3/config) you should edit the files in the originals theme (e.g. ~/.local/share/config_patcher/originals/i3/config) as the actual config files will be overwritten.
 
 ## The current state:
 The script supports replacing occurrences of patterns in the old config with the ones in the new one
