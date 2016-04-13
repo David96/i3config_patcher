@@ -33,52 +33,50 @@ class Theme:
         for name,files in self.files.items():
             if name in self.mergers:
                 logging.debug("Merging %s for %s", name, files)
-                self.mergers[name].apply(self.themes.original.files[name], files)
+                self.__get_merger_for_software(name).apply(name, self)
         Config().set("theme", self.name)
+
+    def __get_merger_for_software(self, software):
+        if software not in self.mergers:
+            return None
+        mergers = self.mergers[software]
+        return max(mergers, key=lambda x:x.get_priority())
 
 class Themes:
     """
         Functionality to load themes from XDG_DATA_HOME/config_patcher
         (usually ~/.local/share/config_patcher/)
 
-        The first time it is run it backups all files that are supported
-        by any merger into the "originals" theme.
+        When patching a file, it is checked whether it already exists
+        in the »originals« theme, if not, it is copied to
+        THEME_DIR/originals/software/file.
         When a theme is applied, the style is applied to the originals.
         The actual config files are overwritten, so changes should be made
         inside the originals theme, reapplying the style afterwards.
 
         Resetting to them is possible by applying the originals theme.
-
-        TODO: improve this backup system. It is bad.
     """
 
     def __init__(self):
         self.mergers = self.__load_mergers()
-        if not os.path.exists(os.path.join(THEME_PATH, "originals")):
-            self.backup_config()
+        os.makedirs(os.path.join(THEME_PATH, "originals"), exist_ok=True)
         self.original = self.load_theme("originals")
 
     def load_theme(self, name):
         theme_dir = os.path.join(THEME_PATH, name)
+        if not os.path.isdir(theme_dir):
+            return None
         files = self.__load_files(theme_dir)
-        if files:
-            return Theme(name, files, self.mergers, self)
-        return None
+        return Theme(name, files, self.mergers, self)
 
-    def backup_config(self, software=None):
-        if software:
-            files = self.merger[software].files
-            path = os.path.join(THEME_PATH, "originals", software)
-            for name, files in files.items():
-                for f in files:
-                    if os.access(f, os.R_OK):
-                        dirname = os.path.dirname(os.path.join(path, name))
-                        if not os.path.exists(dirname):
-                            os.makedirs(dirname)
-                        shutil.copyfile(f, os.path.join(path, name))
-        else:
-            for m in self.merger:
-                self.backup_config(m)
+    def backup_if_necessary(self, software, name, filename):
+        if not software in self.original.files or \
+                not name in self.original.files[software]:
+            logging.debug("Backing up %s" % filename)
+            files_dir = os.path.join(THEME_PATH, "originals", software)
+            os.makedirs(files_dir, exist_ok=True)
+            shutil.copyfile(filename, os.path.join(files_dir, name))
+            self.original = self.load_theme("originals")
 
     def __load_files(self, directory):
         if os.path.isdir(directory):
@@ -104,7 +102,12 @@ class Themes:
                     m = getattr(mod, "Merger")
                     if issubclass(m, BaseMerger):
                         logging.debug("Found merger for %s", name)
-                        mergers[name] = m()
+                        merger = m()
+                        for software in merger.get_supported_software():
+                            if software in mergers:
+                                mergers[software].append(merger)
+                            else:
+                                mergers[software] = [ merger ]
                 except AttributeError:
                     logging.warning("Merger %s found but doesn't implement a Merger class inheriting from BaseMerger", name)
         return mergers

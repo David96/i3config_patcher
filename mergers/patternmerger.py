@@ -1,17 +1,39 @@
 import logging
+from os import path
+from xdg.BaseDirectory import xdg_config_home
 
 from matcher import *
 from merger import BaseMerger
 
-class PatternMerger(BaseMerger):
+class Merger(BaseMerger):
     """
         Provides merging functionality for two i3 config files.
         Merges only the style parts (identified by regex patterns) from the new file into the old one.
     """
-    def __init__(self, patterns):
-        self.patterns = patterns
 
-    def merge(self, name, oldconfig, newconfig):
+    def merge(self, software, name, oldconfig, newconfig):
+        logging.debug("Software: %s" % software)
+        if software == "i3":
+            patterns = {
+                "root" :  ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s",
+                                    "^\s*new_float\s", "^\s*hide_edge_borders\s"],
+                "bar":    ["^\s*strip_workspace_numbers\s",
+                                    "^\s*font\s", "^\s*mode\s"],
+                "colors": [".*"] }
+        elif software == "i3status":
+            patterns = {"general" :  ["^\s*colors\s", "^\s*color_\w+\s"]}
+
+        return self.merge_config(patterns, oldconfig, newconfig)
+
+
+    def get_supported_software(self):
+        return {"i3":
+            { "config": ["~/.i3/config", path.join(xdg_config_home, "i3/config")]},
+                "i3status":
+            { "config": [ "~/.i3status/config",
+                            path.join(xdg_config_home, "i3status/config")]}}
+
+    def merge_config(self, patterns, oldconfig, newconfig):
         """
             Merge the style of two i3 config files.
             Overrides oldconfig.
@@ -20,7 +42,7 @@ class PatternMerger(BaseMerger):
             :param oldconfig: Path to old config
             :param newconfig: Path to merge into old config
         """
-        matcher = Matcher(self.patterns)
+        matcher = Matcher(patterns)
 
         (blocks, variables) = self.__parse_config(matcher, newconfig)
         return self.__merge_config(matcher, blocks, variables, oldconfig)
