@@ -70,7 +70,8 @@ class Themes:
         return Theme(name, files, self.mergers, self)
 
     def backup_if_necessary(self, software, name, filename):
-        if not software in self.original.files or \
+        if Config().get("theme") == "originals" or \
+                not software in self.original.files or \
                 not name in self.original.files[software]:
             logging.debug("Backing up %s" % filename)
             files_dir = os.path.join(THEME_PATH, "originals", software)
