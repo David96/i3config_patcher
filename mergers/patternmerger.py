@@ -13,6 +13,9 @@ class Merger(BaseMerger):
 
     def merge(self, software, name, oldconfig, newconfig):
         logging.debug("Software: %s" % software)
+        pattern_open = "^\s*(\w+)\s*(\"?.*\"?)?\s*{"
+        pattern_close = "\s*}\s*"
+        nested = True
         if software == "i3":
             patterns = {
                 "root" :  ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s",
@@ -22,8 +25,14 @@ class Merger(BaseMerger):
                 "colors": [".*"] }
         elif software == "i3status":
             patterns = {"general" :  ["^\s*colors\s", "^\s*color_\w+\s"]}
+        elif software == "termite":
+            patterns = { "colors" : [".*"] }
+            pattern_open = "\s*\[([^\]]*)\]"
+            pattern_close = None
+            nested = False
 
-        return self.merge_config(patterns, oldconfig, newconfig)
+        matcher = Matcher(patterns, pattern_open, pattern_close, nested)
+        return self.merge_config(matcher, oldconfig, newconfig)
 
 
     def get_supported_software(self):
@@ -31,9 +40,11 @@ class Merger(BaseMerger):
             { "config": ["~/.i3/config", path.join(xdg_config_home, "i3/config")]},
                 "i3status":
             { "config": [ "~/.i3status/config",
-                            path.join(xdg_config_home, "i3status/config")]}}
+                            path.join(xdg_config_home, "i3status/config")]},
+                "termite":
+            { "config": [ path.join(xdg_config_home, "termite/config") ]}}
 
-    def merge_config(self, patterns, oldconfig, newconfig):
+    def merge_config(self, matcher, oldconfig, newconfig):
         """
             Merge the style of two i3 config files.
             Overrides oldconfig.
@@ -42,8 +53,6 @@ class Merger(BaseMerger):
             :param oldconfig: Path to old config
             :param newconfig: Path to merge into old config
         """
-        matcher = Matcher(patterns)
-
         (blocks, variables) = self.__parse_config(matcher, newconfig)
         return self.__merge_config(matcher, blocks, variables, oldconfig)
 
