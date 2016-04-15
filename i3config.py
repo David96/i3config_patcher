@@ -15,7 +15,7 @@ if __name__ == "__main__":
         print("The current theme is %s" % c.get("theme"))
         sys.exit(-1)
 
-    logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='[%(levelname)7s] %(filename)16s:%(lineno)3s: %(message)s', level=logging.DEBUG)
 
     themes = Themes()
     t = themes.load_theme(sys.argv[1])
