@@ -11,8 +11,8 @@ class Matcher:
         Provides basic matching functionality for simple config files.
     """
 
-    def __init__(self, blocks, pattern_open,
-                        pattern_close=None, nested_blocks=False):
+    def __init__(self, blocks, pattern_open, pattern_close=None,
+                    pattern_variable=None):
         """
             :param blocks: the blocks to match, format:
                 { "blockname" : ["patterns", "to", "match"], "anotherblock": [ ...] }
@@ -25,13 +25,10 @@ class Matcher:
             :param nested_blocks: Whether nested blocks have to be supported.
                 Requires pattern_close to be set.
         """
-
-        if nested_blocks and not pattern_close:
-            raise Exception("pattern_close must be defined when nested_blocks=True")
-
         self.pattern_open = pattern_open
         self.pattern_close = pattern_close
-        self.nested_blocks = nested_blocks
+        self.nested_blocks = (pattern_close != None)
+        self.pattern_variable = pattern_variable
         self.match_level = 0
         self.matching_blocks = [ "root" ]
         self.blocks = blocks
@@ -57,26 +54,26 @@ class Matcher:
             return MatchObj(MATCH_OPEN, self.pattern_open, block, matchObj.groups())
 
         current_block = self.matching_blocks[self.match_level]
-        if self.pattern_close:
+        if self.nested_blocks:
             matchObj = re.match(self.pattern_close, line)
             if matchObj:
-                if self.nested_blocks:
-                    self.match_level -= 1
-                    self.matching_blocks.pop()
-                else:
-                    self.matching_blocks[0] = "root"
+                self.match_level -= 1
+                self.matching_blocks.pop()
                 return MatchObj(MATCH_CLOSE, self.pattern_close,
                                         current_block, matchObj.groups())
 
-        matchObj = re.match("^set\s+\$(\w+)\s+(.+)", line)
-        if matchObj:
-            return MatchObj(MATCH_VARIABLE, None, current_block, matchObj.groups())
+        if self.pattern_variable:
+            matchObj = re.match(self.pattern_variable, line)
+            if matchObj:
+                return MatchObj(MATCH_VARIABLE, None, current_block,
+                                            matchObj.groups())
 
         if current_block in self.blocks:
             for pattern in self.blocks[current_block]:
                 matchObj = re.match(pattern, line)
                 if matchObj:
-                    return MatchObj(MATCH_LINE, pattern, current_block, matchObj.groups())
+                    return MatchObj(MATCH_LINE, pattern, current_block,
+                                            matchObj.groups())
         return MatchObj(MATCH_NONE, None, current_block, None)
 
 class MatchObj:

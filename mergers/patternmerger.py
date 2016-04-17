@@ -7,32 +7,48 @@ from merger import BaseMerger
 
 class Merger(BaseMerger):
     """
-        Provides merging functionality for two i3 config files.
-        Merges only the style parts (identified by regex patterns) from the new file into the old one.
+        Provides merging functionality for two config files based on some patterns.
+        New software support can easily be added within :func:`merge`.
+        Don't forget to also declare support for the new software in
+        :func:`get_supported_software`
     """
 
     def merge(self, software, name, oldconfig, newconfig):
+        """
+            Merges two config files based on some patterns.
+
+            :param software: the software to merge
+            :param name: the theme filename
+            :param oldconfig: path to the old reference config
+            :param newconfig: path to the new config
+        """
+
         logging.debug("Software: %s" % software)
-        pattern_open = "^\s*(\w+)\s*(\"?.*\"?)?\s*{"
-        pattern_close = "\s*}\s*"
-        nested = True
-        if software == "i3":
-            patterns = {
-                "root" :  ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s",
-                                    "^\s*new_float\s", "^\s*hide_edge_borders\s"],
-                "bar":    ["^\s*strip_workspace_numbers\s",
-                                    "^\s*font\s", "^\s*mode\s"],
-                "colors": [".*"] }
-        elif software == "i3status":
-            patterns = {"general" :  ["^\s*colors\s", "^\s*color_\w+\s"]}
+        pattern_open = pattern_close = pattern_variable = None
+        if software == "i3" or software == "i3status":
+            pattern_open = "^\s*(\w+)\s*(\"?.*\"?)?\s*{"
+            pattern_close = "\s*}\s*"
+            pattern_variable = "^set\s+\$(\w+)\s+(.+)";
+            if software == "i3":
+                patterns = {
+                    "root" :  ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s",
+                                        "^\s*new_float\s", "^\s*hide_edge_borders\s"],
+                    "bar":    ["^\s*strip_workspace_numbers\s",
+                                        "^\s*font\s", "^\s*mode\s"],
+                    "colors": [".*"] }
+            elif software == "i3status":
+                patterns = {"general" :  ["^\s*colors\s", "^\s*color_\w+\s"]}
         elif software == "termite":
             patterns = { "colors" : [".*"] }
             pattern_open = "\s*\[([^\]]*)\]"
             pattern_close = None
+            pattern_variable = None
             nested = False
 
-        matcher = Matcher(patterns, pattern_open, pattern_close, nested)
-        return self.merge_config(matcher, oldconfig, newconfig)
+        matcher = Matcher(patterns, pattern_open, pattern_close, pattern_variable)
+
+        (blocks, variables) = self.__parse_config(matcher, newconfig)
+        return self.__merge_config(matcher, blocks, variables, oldconfig)
 
 
     def get_supported_software(self):
@@ -43,18 +59,6 @@ class Merger(BaseMerger):
                             path.join(xdg_config_home, "i3status/config")]},
                 "termite":
             { "config": [ path.join(xdg_config_home, "termite/config") ]}}
-
-    def merge_config(self, matcher, oldconfig, newconfig):
-        """
-            Merge the style of two i3 config files.
-            Overrides oldconfig.
-
-            :param name: name of the file in the theme
-            :param oldconfig: Path to old config
-            :param newconfig: Path to merge into old config
-        """
-        (blocks, variables) = self.__parse_config(matcher, newconfig)
-        return self.__merge_config(matcher, blocks, variables, oldconfig)
 
     def __get_used_variables(self, line, variables):
         """
