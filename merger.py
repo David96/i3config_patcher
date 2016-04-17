@@ -61,7 +61,7 @@ class BaseMerger:
                         # reload orig files because the original theme might have
                         # changed (in case a backup was necessary)
                         orig_files = theme.themes.original.files[software]
-                        with open(os.path.expanduser(orig_path), "w") as f:
+                        with open(filename, "w") as f:
                             f.writelines(self.merge(software, name,
                                         orig_files[name], theme_path))
                         break
