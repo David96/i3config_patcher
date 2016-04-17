@@ -22,8 +22,6 @@ class Merger(BaseMerger):
             :param oldconfig: path to the old reference config
             :param newconfig: path to the new config
         """
-
-        logging.debug("Software: %s" % software)
         pattern_open = pattern_close = pattern_variable = None
         if software == "i3" or software == "i3status":
             pattern_open = "^\s*(\w+)\s*(\"?.*\"?)?\s*{"

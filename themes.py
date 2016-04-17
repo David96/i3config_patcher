@@ -32,7 +32,7 @@ class Theme:
     def apply(self):
         for name,files in self.files.items():
             if name in self.mergers:
-                logging.debug("Merging %s for %s", name, files)
+                logging.debug("Applying %s for %s", self.name, name)
                 self.__get_merger_for_software(name).apply(name, self)
         Config().set("theme", self.name)
 
@@ -102,8 +102,9 @@ class Themes:
                 try:
                     m = getattr(mod, "Merger")
                     if issubclass(m, BaseMerger):
-                        logging.debug("Found merger for %s", name)
                         merger = m()
+                        logging.debug("Found merger for %s", \
+                                merger.get_supported_software().keys())
                         for software in merger.get_supported_software():
                             if software in mergers:
                                 mergers[software].append(merger)

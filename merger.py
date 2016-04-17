@@ -51,7 +51,6 @@ class BaseMerger:
     def apply(self, software, theme):
         new_files = theme.files[software]
         files = self.get_supported_software()[software]
-        logging.debug("Applying %s for %s" % (files, software))
         for name, theme_path in new_files.items():
             if name in files:
                 for orig_path in files[name]:
@@ -62,6 +61,8 @@ class BaseMerger:
                         # changed (in case a backup was necessary)
                         orig_files = theme.themes.original.files[software]
                         with open(filename, "w") as f:
+                            logging.debug("Merging %s with %s" %
+                                    (orig_files[name], theme_path))
                             f.writelines(self.merge(software, name,
                                         orig_files[name], theme_path))
                         break
