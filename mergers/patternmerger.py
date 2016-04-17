@@ -41,9 +41,6 @@ class Merger(BaseMerger):
         elif software == "termite":
             patterns = { "colors" : [".*"] }
             pattern_open = "\s*\[([^\]]*)\]"
-            pattern_close = None
-            pattern_variable = None
-            nested = False
 
         matcher = Matcher(patterns, pattern_open, pattern_close, pattern_variable)
 
