@@ -40,7 +40,9 @@ class Merger(BaseMerger):
             patterns = { "colors" : [".*"] }
             pattern_open = "\s*\[([^\]]*)\]"
         elif software == "X":
-            patterns = { "root" : [ "^\s*\w+\.(color\d+|background|foreground)" ] }
+            patterns = { "root" :
+                    [ "^\s*\w+[\.\*](color\d+|background|foreground|(cursor" +
+                    "|scroll|highlight|highlightText)Color)" ] }
 
         matcher = Matcher(patterns, pattern_open, pattern_close, pattern_variable)
 
