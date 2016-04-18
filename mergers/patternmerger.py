@@ -112,21 +112,24 @@ class Merger(BaseMerger):
             block_config = []
             self.__append_block(block_config, b, variables)
             if len(block_config) > 0:
-                config.append("%s {\n%s\n}\n" % (b.name, "".join(block_config)))
+                config.append("%s%s%s" % (b.line_open if b.line_open else "",
+                        "".join(block_config),
+                        b.line_close if b.line_close else ""))
 
     def __parse_config(self, matcher, path):
-        blocks = { "root": Block("root", None) }
+        blocks = { "root": Block("root", None, None) }
         current_block = blocks["root"]
         variables = {}
         with open(path) as f:
             for line in f:
                 matchobj = matcher.matches(line)
                 if matchobj.match_type == MATCH_OPEN:
-                    new_block = Block(matchobj.current_block, current_block)
+                    new_block = Block(matchobj.current_block, current_block, line)
                     blocks[matchobj.current_block] = new_block
                     current_block.blocks.add(new_block)
                     current_block = new_block
                 elif matchobj.match_type == MATCH_CLOSE:
+                    current_block.line_close = line
                     current_block = current_block.parent
                 elif matchobj.match_type == MATCH_VARIABLE:
                     variables[matchobj.groups[0]] =  Variable(matchobj.groups[0], matchobj.groups[1], line)
@@ -187,9 +190,11 @@ class Match:
 
 class Block:
 
-    def __init__(self, name, parent):
+    def __init__(self, name, parent, line_open, line_close=None):
         self.name = name
         self.parent = parent
+        self.line_open = line_open
+        self.line_close = line_close
         self.matches = {}
         self.blocks = set()
         self.used_variables = set()
