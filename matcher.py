@@ -20,14 +20,13 @@ class Matcher:
                 The "root" block matches everything without a block.
             :param pattern_open: The pattern that opens a block, first match group
                 is used as its name.
-            :param pattern_close: The pattern that closes a block. Only necessary if
-                nested_blocks==True
-            :param nested_blocks: Whether nested blocks have to be supported.
-                Requires pattern_close to be set.
+            :param pattern_close: The pattern that closes a block.
+            :param pattern_variable: The pattern used for variable matching.
+                First matchgroup must be variable name, 2nd variable value
         """
+        assert(not (pattern_close and not pattern_open))
         self.pattern_open = pattern_open
         self.pattern_close = pattern_close
-        self.nested_blocks = (pattern_close != None)
         self.pattern_variable = pattern_variable
         self.match_level = 0
         self.matching_blocks = [ "root" ]
@@ -43,18 +42,19 @@ class Matcher:
             :returns: :class:`.MatchObj`
 
         """
-        matchObj = re.match(self.pattern_open, line)
-        if matchObj:
-            block = matchObj.group(1)
-            if self.nested_blocks:
-                self.match_level += 1
-                self.matching_blocks.append(block)
-            else:
-                self.matching_blocks[0] = block
-            return MatchObj(MATCH_OPEN, self.pattern_open, block, matchObj.groups())
+        if self.pattern_open:
+            matchObj = re.match(self.pattern_open, line)
+            if matchObj:
+                block = matchObj.group(1)
+                if self.pattern_close:
+                    self.match_level += 1
+                    self.matching_blocks.append(block)
+                else:
+                    self.matching_blocks[0] = block
+                return MatchObj(MATCH_OPEN, self.pattern_open, block, matchObj.groups())
 
         current_block = self.matching_blocks[self.match_level]
-        if self.nested_blocks:
+        if self.pattern_close:
             matchObj = re.match(self.pattern_close, line)
             if matchObj:
                 self.match_level -= 1

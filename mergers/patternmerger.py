@@ -39,6 +39,8 @@ class Merger(BaseMerger):
         elif software == "termite":
             patterns = { "colors" : [".*"] }
             pattern_open = "\s*\[([^\]]*)\]"
+        elif software == "X":
+            patterns = { "root" : [ "^\s*\w+\.(color\d+|background|foreground)" ] }
 
         matcher = Matcher(patterns, pattern_open, pattern_close, pattern_variable)
 
@@ -53,7 +55,9 @@ class Merger(BaseMerger):
             { "config": [ "~/.i3status/config",
                             path.join(xdg_config_home, "i3status/config")]},
                 "termite":
-            { "config": [ path.join(xdg_config_home, "termite/config") ]}}
+            { "config": [ path.join(xdg_config_home, "termite/config") ]},
+                "X":
+            { "Xresources" : [ "~/.Xresources" ] }}
 
     def __get_used_variables(self, line, variables):
         """
