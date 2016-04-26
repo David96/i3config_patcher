@@ -26,7 +26,8 @@ class Merger(BaseMerger):
         if software == "i3" or software == "i3status":
             pattern_open = "^\s*(\w+)\s*(\"?.*\"?)?\s*{"
             pattern_close = "\s*}\s*"
-            pattern_variable = "^set\s+\$(\w+)\s+(.+)";
+            pattern_variable = "^set\s+\$(\w+)\s+(.+)"
+            self.variable_use = "$%s"
             if software == "i3":
                 patterns = {
                     "root" :  ["^\s*font\s", "^\s*client\.\w+", "^\s*new_window\s",
@@ -40,8 +41,10 @@ class Merger(BaseMerger):
             patterns = { "colors" : [".*"] }
             pattern_open = "\s*\[([^\]]*)\]"
         elif software == "X":
+            pattern_variable = "#define\s+(\w+)\s+(.*)"
+            self.variable_use = "%s"
             patterns = { "root" :
-                    [ "^\s*\w+[\.\*](color\d+|background|foreground|(cursor" +
+                    [ "^\s*\w*[\.\*](color\d+|background|foreground|(cursor" +
                     "|scroll|highlight|highlightText)Color)" ] }
 
         matcher = Matcher(patterns, pattern_open, pattern_close, pattern_variable)
@@ -73,7 +76,7 @@ class Merger(BaseMerger):
             # at the same position and if in doubt take the longer variable.
             # See https://github.com/David96/i3config_patcher/issues/6
             try:
-                position = line.index("$%s" % variable)
+                position = line.index(self.variable_use % variable)
                 if position in variable_matches:
                     logging.debug("Found conflicting variable usage of %s with %s at %d in %s",
                             variable, variable_matches[position], position, line)
