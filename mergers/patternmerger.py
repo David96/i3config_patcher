@@ -46,6 +46,11 @@ class Merger(BaseMerger):
             patterns = { "root" :
                     [ "^\s*\w*[\.\*](color\d+|background|foreground|(cursor" +
                     "|scroll|highlight|highlightText)Color)" ] }
+        elif software == "dunst":
+            colours = ["^\s*color\s*=", "^\s*foreground\s*=", "^\s*background\s*="]
+            pattern_open = "\s*\[([^\]]*)\]"
+            patterns = { "urgency_low" : colours, "urgency_normal" : colours,
+                    "urgency_critical" : colours, "frame" : colours }
 
         matcher = Matcher(patterns, pattern_open, pattern_close, pattern_variable)
 
@@ -62,7 +67,9 @@ class Merger(BaseMerger):
                 "termite":
             { "config": [ path.join(xdg_config_home, "termite/config") ]},
                 "X":
-            { "Xresources" : [ "~/.Xresources" ] }}
+            { "Xresources" : [ "~/.Xresources" ] },
+                "dunst":
+            { "dunstrc" : [ path.join(xdg_config_home, "dunst/dunstrc") ]}}
 
     def __get_used_variables(self, line, variables):
         """
