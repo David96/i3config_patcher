@@ -1,0 +1,4 @@
+[submodule "examples"]
+	path = examples
+	url = git@github.com:David96/config_patcher_themes
+	branch = master
